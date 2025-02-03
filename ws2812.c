@@ -1,8 +1,5 @@
-//#include <stdio.h>
-//#include <stdlib.h>
+
 #include "pico/stdlib.h"
-//#include "hardware/pio.h"
-//#include "hardware/clocks.h"
 #include "ws2812.pio.h"
 #include "numeros.h"
 
@@ -13,12 +10,12 @@
 
 #define botaoA 5
 #define botaoB 6
-uint8_t led_r = 255; // Vermelho
+uint8_t led_r = 50; // Vermelho
 uint8_t led_g = 0; // Verde
 uint8_t led_b = 0; // Azul
 uint32_t events;
 uint64_t t_int;
-uint64_t t_bro =370000;// tempo de broucing 0,75 s
+uint64_t t_bro =20000;// tempo de broucing 0,75 s
 int num=0;
 int irq =0;
 
@@ -41,44 +38,40 @@ void set_number(int num) {
         }
     }
 }
- void contamais(uint gpio, uint32_t events1) {
-    //if(botaoA==gpio){
-    if(irq==0){
+
+void contamais() {
+    num++;
+    if(num == 10){
+        num=0;
+    }
+    set_number(num);
+}
+
+void contamenos() {
+    num--;
+    if(num == -1){
+        num=9;
+    }
+    set_number(num);
+}
+
+void olhar(uint gpio, uint32_t events0) {
+        if(irq==0){
         t_int = time_us_64();
     }
     irq++;
     if( (time_us_64()- t_int)>t_bro){
         //inicio função chamad
-        num++;
-        if(num == 10){
-            num=0;
+        if(gpio==botaoA){
+        contamais();
         }
-        set_number(num);
-        //fim da função chamada
+        if(gpio==botaoB){
+        contamenos();
+        }
         irq=0;
     }
-    //}
-    
-    
 }
- void contamenos(uint gpio, uint32_t events0) {
-    //if(botaoB==gpio){
-    if(irq==0){
-        t_int = time_us_64();
-    }
-    irq++;
-    if( (time_us_64()- t_int)>t_bro){
-        //inicio função chamad
-        num--;
-        if(num == -1){
-            num=9;
-        }
-        set_number(num);
-        //fim da função chamada
-        irq=0;
-    }
-    //}
-}
+
 
 int main() {
     PIO pio = pio0;
@@ -92,18 +85,12 @@ int main() {
     gpio_init(botaoB);
     gpio_set_dir(botaoB,GPIO_IN);
     gpio_pull_up(botaoB);
-    gpio_set_irq_enabled_with_callback(botaoB,GPIO_IRQ_EDGE_FALL,true, &contamenos);
-    gpio_set_irq_enabled_with_callback(botaoA,GPIO_IRQ_EDGE_RISE,true, &contamais);
-    
-    
-
+    gpio_set_irq_enabled_with_callback(botaoA,GPIO_IRQ_EDGE_RISE,true, &olhar);
+    gpio_set_irq_enabled_with_callback(botaoB,GPIO_IRQ_EDGE_RISE,true, &olhar);
     set_number(num);
 
-    while (1) {
-    /*for (int cont=0;cont<25;cont++){
-        set_number(cont);
-        sleep_ms(1000);
-    }*/
+    while (true) {
+
     }
 
     return 0;
