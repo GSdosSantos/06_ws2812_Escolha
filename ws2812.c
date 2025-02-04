@@ -10,14 +10,16 @@
 
 #define botaoA 5
 #define botaoB 6
-uint8_t led_r = 50; // Vermelho
+#define ledver 13
+uint8_t led_r = 0; // Vermelho
 uint8_t led_g = 0; // Verde
-uint8_t led_b = 0; // Azul
+uint8_t led_b = 50; // Azul
 uint32_t events;
 uint64_t t_int;
 uint64_t t_bro =20000;// tempo de broucing 0,75 s
 int num=0;
 int irq =0;
+bool estado = true;
 
 
 static inline void put_pixel(uint32_t pixel_grb) {
@@ -71,6 +73,10 @@ void olhar(uint gpio, uint32_t events0) {
         irq=0;
     }
 }
+bool repeating_timer_callback(struct repeating_timer *t) {
+    gpio_put(ledver,estado);
+    estado = !estado;
+}
 
 
 int main() {
@@ -85,8 +91,14 @@ int main() {
     gpio_init(botaoB);
     gpio_set_dir(botaoB,GPIO_IN);
     gpio_pull_up(botaoB);
+    gpio_init(ledver);
+    gpio_set_dir(ledver,GPIO_OUT);
+
     gpio_set_irq_enabled_with_callback(botaoA,GPIO_IRQ_EDGE_RISE,true, &olhar);
     gpio_set_irq_enabled_with_callback(botaoB,GPIO_IRQ_EDGE_RISE,true, &olhar);
+    repeating_timer_t timer;
+    add_repeating_timer_ms(100, repeating_timer_callback,NULL, &timer);
+
     set_number(num);
 
     while (true) {
